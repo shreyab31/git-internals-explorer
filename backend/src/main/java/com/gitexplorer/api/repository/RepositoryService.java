@@ -63,7 +63,8 @@ public class RepositoryService {
 
     public List<CommitResponse> getCommitHistory(
             String path,
-            String ref
+            String ref,
+            int limit
     ) throws Exception {
 
         try (Repository repository = new FileRepositoryBuilder()
@@ -77,10 +78,17 @@ public class RepositoryService {
                 return List.of();
             }
 
-            // Find which branches point directly to which commits.
-            Map<String, List<String>> branchesByCommit = new java.util.HashMap<>();
+            int effectiveLimit =
+                    Math.max(1, Math.min(limit, 100));
 
-            for (var refUpdate : repository.getRefDatabase().getRefs()) {
+            /*
+             * Find which branches point directly to which commits.
+             */
+            Map<String, List<String>> branchesByCommit =
+                    new java.util.HashMap<>();
+
+            for (var refUpdate :
+                    repository.getRefDatabase().getRefs()) {
 
                 String refName = refUpdate.getName();
 
@@ -88,7 +96,9 @@ public class RepositoryService {
                         && refUpdate.getObjectId() != null) {
 
                     String branchName =
-                            refName.substring("refs/heads/".length());
+                            refName.substring(
+                                    "refs/heads/".length()
+                            );
 
                     String commitId =
                             refUpdate.getObjectId().getName();
@@ -109,16 +119,30 @@ public class RepositoryService {
 
                 walk.markStart(startCommit);
 
+                /*
+                 * Tell JGit to stop walking once we have
+                 * enough commits.
+                 */
+                walk.setRevFilter(
+                        org.eclipse.jgit.revwalk.filter
+                                .MaxCountRevFilter
+                                .create(effectiveLimit)
+                );
+
                 List<CommitResponse> commits =
-                        new ArrayList<>();
+                        new ArrayList<>(effectiveLimit);
 
                 for (RevCommit commit : walk) {
 
                     List<String> parentIds =
                             new ArrayList<>();
 
-                    for (RevCommit parent : commit.getParents()) {
-                        parentIds.add(parent.getName());
+                    for (RevCommit parent :
+                            commit.getParents()) {
+
+                        parentIds.add(
+                                parent.getName()
+                        );
                     }
 
                     List<String> branches =
@@ -130,13 +154,16 @@ public class RepositoryService {
                     commits.add(
                             new CommitResponse(
                                     commit.getName(),
-                                    commit.getName().substring(0, 7),
+                                    commit.getName()
+                                            .substring(0, 7),
                                     commit.getShortMessage(),
-                                    commit.getAuthorIdent().getName(),
+                                    commit.getAuthorIdent()
+                                            .getName(),
                                     commit.getAuthorIdent()
                                             .getWhen()
                                             .toInstant(),
-                                    commit.getCommitterIdent().getName(),
+                                    commit.getCommitterIdent()
+                                            .getName(),
                                     commit.getCommitterIdent()
                                             .getWhen()
                                             .toInstant(),

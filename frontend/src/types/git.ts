@@ -27,6 +27,7 @@ export type DiffEntry = {
 export type RepositoryInfo = {
   path: string;
   gitDirectory: string;
+  defaultBranch: string;
 };
 
 export type TreeEntry = {

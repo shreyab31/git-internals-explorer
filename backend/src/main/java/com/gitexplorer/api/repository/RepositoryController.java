@@ -43,12 +43,14 @@ public class RepositoryController {
     @GetMapping("/commits")
     public List<CommitResponse> getCommitHistory(
             @RequestParam String path,
-            @RequestParam(defaultValue = "HEAD") String ref
+            @RequestParam(defaultValue = "HEAD") String ref,
+            @RequestParam(defaultValue = "30") int limit
     ) throws Exception {
 
         return gitHubService.getCommitHistory(
                 path,
-                ref
+                ref,
+                limit
         );
     }
     @GetMapping("/commits/{commitId}/diff")

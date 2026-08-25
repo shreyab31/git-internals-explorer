@@ -44,11 +44,13 @@ export async function openRepository(
 
 export async function getCommits(
     path: string,
-    ref = "HEAD"
+    ref = "HEAD",
+    limit = 30
 ): Promise<Commit[]> {
     const params = new URLSearchParams({
         path,
         ref,
+        limit: String(limit),
     });
 
     const response = await fetch(

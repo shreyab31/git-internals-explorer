@@ -1,5 +1,4 @@
-import { useState } from "react";
-
+import { useEffect, useState } from "react";
 import { CommitDetails } from "./components/CommitDetails";
 import { RepositoryBar } from "./components/RepositoryBar";
 import { ObjectInspector } from "./components/ObjectInspector";
@@ -17,6 +16,17 @@ import {
 } from "./api/repositoryApi";
 
 type Page = "repository" | "commits" | "objects";
+
+const STORAGE_KEY = "git-internals-explorer-state";
+
+type StoredRepositoryState = {
+    path: string;
+    repository: RepositoryInfo;
+    commits: Commit[];
+    refs: Ref[];
+    selectedBranch: Ref | null;
+    activePage: Page;
+};
 
 export function App() {
   const [path, setPath] = useState("");
@@ -55,10 +65,47 @@ export function App() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [refsLoading, setRefsLoading] = useState(false);
+  useEffect(() => {
+      try {
+          const stored =
+              localStorage.getItem(STORAGE_KEY);
+
+          if (!stored) {
+              return;
+          }
+
+          const saved =
+              JSON.parse(stored) as StoredRepositoryState;
+
+          if (
+              !saved.path ||
+              !saved.repository ||
+              !Array.isArray(saved.commits) ||
+              !Array.isArray(saved.refs)
+          ) {
+              localStorage.removeItem(STORAGE_KEY);
+              return;
+          }
+
+          setPath(saved.path);
+          setRepository(saved.repository);
+          setCommits(saved.commits);
+          setRefs(saved.refs);
+          setSelectedBranch(
+              saved.selectedBranch
+          );
+          setActivePage(
+              saved.activePage ?? "repository"
+          );
+      } catch {
+          localStorage.removeItem(STORAGE_KEY);
+      }
+  }, []);
 
   async function openRepository() {
       if (!path.trim()) {
-          setError("Enter a repository path.");
+          setError("Enter a repository URL.");
           return;
       }
 
@@ -69,41 +116,73 @@ export function App() {
           const repositoryData =
               await openRepositoryApi(path);
 
-          const refsData =
-              await getRefs(path);
-
-          const branches =
-              refsData.filter(
-                  (ref) => ref.type === "BRANCH"
+          const commitsData =
+              await getCommits(
+                  path,
+                  repositoryData.defaultBranch,
+                  30
               );
 
-          const defaultBranch =
-              branches.find(
-                  (ref) => ref.name === "main"
-              ) ??
-              branches[0] ??
-              null;
-
-          let commitsData: Commit[] = [];
-
-          if (defaultBranch) {
-              commitsData =
-                  await getCommits(
-                      path,
-                      defaultBranch.name
-                  );
-          }
+          const defaultBranch: Ref = {
+              name: repositoryData.defaultBranch,
+              type: "BRANCH",
+              target: null,
+          };
 
           setRepository(repositoryData);
           setCommits(commitsData);
-          setRefs(refsData);
           setSelectedBranch(defaultBranch);
 
           setSelectedCommit(null);
           setSelectedTreeId(null);
           setObjectGraph(null);
+          setObjectCommit(null);
           setDiffs([]);
 
+          /*
+           * Load branches in the background.
+           * Do NOT make repository opening wait for this.
+           */
+          setRefsLoading(true);
+
+          getRefs(path)
+              .then((refsData) => {
+                  setRefs(refsData);
+
+                  const actualDefaultBranch =
+                      refsData.find(
+                          (ref) =>
+                              ref.type === "BRANCH" &&
+                              ref.name ===
+                                  repositoryData.defaultBranch
+                      );
+
+                  const branch =
+                      actualDefaultBranch ?? defaultBranch;
+
+                  setSelectedBranch(branch);
+
+                  localStorage.setItem(
+                      STORAGE_KEY,
+                      JSON.stringify({
+                          path,
+                          repository: repositoryData,
+                          commits: commitsData,
+                          refs: refsData,
+                          selectedBranch: branch,
+                          activePage,
+                      } satisfies StoredRepositoryState)
+                  );
+              })
+              .catch((err) => {
+                  console.error(
+                      "Could not load repository references.",
+                      err
+                  );
+              })
+              .finally(() => {
+                  setRefsLoading(false);
+              });
       } catch (err) {
           setError(
               err instanceof Error
@@ -114,7 +193,8 @@ export function App() {
           setLoading(false);
       }
   }
-    async function selectObjectCommit(commit: Commit) {
+
+async function selectObjectCommit(commit: Commit) {
       setObjectCommit(commit);
       setObjectGraph(null);
       setObjectError("");
@@ -164,13 +244,28 @@ export function App() {
       setError("");
       setLoading(true);
 
-      try {
-          const branchCommits = await getCommits(
-              path,
-              branch.name
-          );
+     try {
+         const branchCommits = await getCommits(
+             path,
+             branch.name,
+             30
+         );
 
-          setCommits(branchCommits);
+         setCommits(branchCommits);
+
+         if (repository) {
+             localStorage.setItem(
+                 STORAGE_KEY,
+                 JSON.stringify({
+                     path,
+                     repository,
+                     commits: branchCommits,
+                     refs,
+                     selectedBranch: branch,
+                     activePage,
+                 } satisfies StoredRepositoryState)
+             );
+         }
       } catch (err) {
           setCommits([]);
 
@@ -205,8 +300,24 @@ export function App() {
       </header>
 
       <Navigation
-        activePage={activePage}
-        onNavigate={setActivePage}
+          activePage={activePage}
+          onNavigate={(page) => {
+              setActivePage(page);
+
+              if (repository) {
+                  localStorage.setItem(
+                      STORAGE_KEY,
+                      JSON.stringify({
+                          path,
+                          repository,
+                          commits,
+                          refs,
+                          selectedBranch,
+                          activePage: page,
+                      } satisfies StoredRepositoryState)
+                  );
+              }
+          }}
       />
 
       {activePage === "repository" && (
@@ -286,10 +397,14 @@ export function App() {
                     </div>
 
                     <div className="repository-branch-list">
-                      {refs.length === 0 ? (
-                        <p className="empty-state">
-                          No branches found.
-                        </p>
+                      {refsLoading ? (
+                          <p className="empty-state">
+                              Loading branches...
+                          </p>
+                      ) : refs.length === 0 ? (
+                          <p className="empty-state">
+                              No branches found.
+                          </p>
                       ) : (
                         refs
                           .filter((ref) => ref.type === "BRANCH")
@@ -330,9 +445,23 @@ export function App() {
                       <button
                         type="button"
                         className="repository-view-button"
-                        onClick={() =>
-                          setActivePage("commits")
-                        }
+                        onClick={() => {
+                            setActivePage("commits");
+
+                            if (repository) {
+                                localStorage.setItem(
+                                    STORAGE_KEY,
+                                    JSON.stringify({
+                                        path,
+                                        repository,
+                                        commits,
+                                        refs,
+                                        selectedBranch,
+                                        activePage: "commits",
+                                    } satisfies StoredRepositoryState)
+                                );
+                            }
+                        }}
                       >
                         View commits
                       </button>
@@ -417,6 +546,7 @@ export function App() {
                 </div>
 
                 <select
+                    className="branch-selector"
                     value={selectedBranch?.name ?? ""}
                     onChange={(event) => {
                         const branch = refs.find(
@@ -617,9 +747,9 @@ export function App() {
                 Git objects.
               </p>
             </section>
-          )}
-        </>
-      )}
-    </main>
-  );
-}
+                )}
+              </>
+            )}
+          </main>
+            );
+          }

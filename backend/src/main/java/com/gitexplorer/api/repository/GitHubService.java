@@ -53,7 +53,9 @@ public class GitHubService {
         return Map.of(
                 "path", url,
                 "gitDirectory",
-                repositoryData.path("full_name").asText()
+                repositoryData.path("full_name").asText(),
+                "defaultBranch",
+                repositoryData.path("default_branch").asText()
         );
     }
 
@@ -121,115 +123,104 @@ public class GitHubService {
 
     public List<CommitResponse> getCommitHistory(
             String url,
-            String ref
+            String ref,
+            int limit
     ) throws Exception {
 
         RepositoryCoordinates repository =
                 parseRepositoryUrl(url);
+        int effectiveLimit =
+                Math.max(1, Math.min(limit, 100));
+
+        String apiUrl =
+                "https://api.github.com/repos/"
+                        + repository.owner()
+                        + "/"
+                        + repository.name()
+                        + "/commits?sha="
+                        + java.net.URLEncoder.encode(
+                        ref,
+                        java.nio.charset.StandardCharsets.UTF_8
+                )
+                        + "&per_page="
+                        + effectiveLimit
+                        + "&page=1";
+
+        JsonNode commits = get(apiUrl);
+
+        if (!commits.isArray() || commits.isEmpty()) {
+            return List.of();
+        }
 
         List<CommitResponse> results =
-                new ArrayList<>();
+                new ArrayList<>(commits.size());
 
-        int page = 1;
-        int perPage = 100;
+        for (JsonNode commitNode : commits) {
 
-        while (true) {
+            String id =
+                    commitNode.path("sha").asText();
 
-            String apiUrl =
-                    "https://api.github.com/repos/"
-                            + repository.owner()
-                            + "/"
-                            + repository.name()
-                            + "/commits?sha="
-                            + java.net.URLEncoder.encode(
-                            ref,
-                            java.nio.charset.StandardCharsets.UTF_8
-                    )
-                            + "&per_page="
-                            + perPage
-                            + "&page="
-                            + page;
+            String message =
+                    commitNode
+                            .path("commit")
+                            .path("message")
+                            .asText();
 
-            JsonNode commits = get(apiUrl);
+            String shortId =
+                    id.substring(0, 7);
 
-            if (!commits.isArray() ||
-                    commits.isEmpty()) {
-                break;
-            }
+            String author =
+                    commitNode
+                            .path("commit")
+                            .path("author")
+                            .path("name")
+                            .asText("unknown");
 
-            for (JsonNode commitNode : commits) {
+            String authoredAt =
+                    commitNode
+                            .path("commit")
+                            .path("author")
+                            .path("date")
+                            .asText();
 
-                String id =
-                        commitNode.path("sha").asText();
+            String committer =
+                    commitNode
+                            .path("commit")
+                            .path("committer")
+                            .path("name")
+                            .asText("unknown");
 
-                String message =
-                        commitNode
-                                .path("commit")
-                                .path("message")
-                                .asText();
+            String committedAt =
+                    commitNode
+                            .path("commit")
+                            .path("committer")
+                            .path("date")
+                            .asText();
 
-                String shortId =
-                        id.substring(0, 7);
+            List<String> parentIds =
+                    new ArrayList<>();
 
-                String author =
-                        commitNode
-                                .path("commit")
-                                .path("author")
-                                .path("name")
-                                .asText("unknown");
+            for (JsonNode parent :
+                    commitNode.path("parents")) {
 
-                String authoredAt =
-                        commitNode
-                                .path("commit")
-                                .path("author")
-                                .path("date")
-                                .asText();
-
-                String committer =
-                        commitNode
-                                .path("commit")
-                                .path("committer")
-                                .path("name")
-                                .asText("unknown");
-
-                String committedAt =
-                        commitNode
-                                .path("commit")
-                                .path("committer")
-                                .path("date")
-                                .asText();
-
-                List<String> parentIds =
-                        new ArrayList<>();
-
-                for (JsonNode parent :
-                        commitNode.path("parents")) {
-
-                    parentIds.add(
-                            parent.path("sha").asText()
-                    );
-                }
-
-                results.add(
-                        new CommitResponse(
-                                id,
-                                shortId,
-                                message.split("\n", 2)[0],
-                                author,
-                                Instant.parse(authoredAt),
-                                committer,
-                                Instant.parse(committedAt),
-                                parentIds,
-                                List.of(ref)
-                        )
+                parentIds.add(
+                        parent.path("sha").asText()
                 );
             }
 
-            if (commits.size() < perPage) {
-                break;
-            }
-
-            page++;
+            results.add(
+                    new CommitResponse(
+                            id,
+                            shortId,
+                            message.split("\n", 2)[0],
+                            author,
+                            Instant.parse(authoredAt),
+                            committer,
+                            Instant.parse(committedAt),
+                            parentIds,
+                            List.of(ref)
+                    )
+            );
         }
 
         return results;
