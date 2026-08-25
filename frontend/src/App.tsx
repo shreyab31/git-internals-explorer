@@ -191,50 +191,179 @@ export function App() {
           />
 
           {repository ? (
-            <section className="repository-summary">
-              <div>
-                <span className="summary-label">
-                  Repository
-                </span>
+            <>
+              <section className="repository-summary">
+                <div>
+                  <span className="summary-label">
+                    Repository
+                  </span>
 
-                <strong>{repository.path}</strong>
-              </div>
+                  <strong>{repository.path}</strong>
+                </div>
 
-              <div>
-                <span className="summary-label">
-                  Branch
-                </span>
+                <div>
+                  <span className="summary-label">
+                    Branch
+                  </span>
 
-                <strong>
-                  {currentBranch?.name ?? "—"}
-                </strong>
-              </div>
+                  <strong>
+                    {currentBranch?.name ?? "—"}
+                  </strong>
+                </div>
 
-              <div>
-                <span className="summary-label">
-                  Commits
-                </span>
+                <div>
+                  <span className="summary-label">
+                    Commits
+                  </span>
 
-                <strong>{commits.length}</strong>
-              </div>
-            </section>
+                  <strong>{commits.length}</strong>
+                </div>
+              </section>
+
+              <section className="repository-overview">
+                <div className="repository-overview-header">
+                  <div>
+                    <span className="summary-label">
+                      Repository Overview
+                    </span>
+
+                    <h2>
+                      {repository.gitDirectory}
+                    </h2>
+
+                    <p>
+                      Explore the branches and commit history
+                      of this repository.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="repository-overview-grid">
+                  <div className="repository-overview-panel">
+                    <div className="panel-header">
+                      <div>
+                        <span className="summary-label">
+                          References
+                        </span>
+
+                        <h2>
+                          Branches
+                        </h2>
+                      </div>
+
+                      <span className="count-badge">
+                        {refs.length}
+                      </span>
+                    </div>
+
+                    <div className="repository-branch-list">
+                      {refs.length === 0 ? (
+                        <p className="empty-state">
+                          No branches found.
+                        </p>
+                      ) : (
+                        refs
+                          .filter((ref) => ref.type === "BRANCH")
+                          .map((ref) => (
+                            <div
+                              key={ref.name}
+                              className="repository-branch-item"
+                            >
+                              <span className="branch-indicator">
+                                ●
+                              </span>
+
+                              <span className="repository-branch-name">
+                                {ref.name}
+                              </span>
+
+                              <code title={ref.target}>
+                                {ref.target.slice(0, 7)}
+                              </code>
+                            </div>
+                          ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="repository-overview-panel">
+                    <div className="panel-header">
+                      <div>
+                        <span className="summary-label">
+                          History
+                        </span>
+
+                        <h2>
+                          Recent Commits
+                        </h2>
+                      </div>
+
+                      <button
+                        type="button"
+                        className="repository-view-button"
+                        onClick={() =>
+                          setActivePage("commits")
+                        }
+                      >
+                        View commits
+                      </button>
+                    </div>
+
+                    <div className="repository-recent-commits">
+                      {commits.length === 0 ? (
+                        <p className="empty-state">
+                          No commits found.
+                        </p>
+                      ) : (
+                        commits
+                          .slice(0, 8)
+                          .map((commit) => (
+                            <button
+                              type="button"
+                              key={commit.id}
+                              className="repository-recent-commit"
+                              onClick={() => {
+                                setActivePage("commits");
+                                selectCommit(commit);
+                              }}
+                            >
+                              <code>
+                                {commit.shortId}
+                              </code>
+
+                              <span className="repository-recent-message">
+                                {commit.message}
+                              </span>
+
+                              <span className="repository-recent-author">
+                                {commit.author}
+                              </span>
+                            </button>
+                          ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </>
           ) : (
             <section className="page-placeholder">
               <span className="summary-label">
                 Repository
               </span>
 
-              <h2>Open a repository</h2>
+              <h2>
+                Open a repository
+              </h2>
 
               <p>
-                Enter a local Git repository path above
-                to begin exploring it.
+                Enter a GitHub repository URL above to
+                begin exploring its Git internals.
               </p>
             </section>
           )}
         </>
       )}
-
       {activePage === "commits" && (
         <>
           <RepositoryBar

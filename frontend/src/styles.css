@@ -2323,3 +2323,199 @@
             grid-template-columns: 1fr;
           }
         }
+        /* --------------------------------------------------
+           REPOSITORY OVERVIEW
+        -------------------------------------------------- */
+
+        .repository-overview {
+          min-width: 0;
+        }
+
+        .repository-overview-header {
+          margin-bottom: 1rem;
+          padding: 1.25rem;
+
+          border: 1px solid #30363d;
+          border-radius: 12px;
+
+          background: #161b22;
+        }
+
+        .repository-overview-header h2 {
+          margin: 0.25rem 0 0.4rem;
+
+          color: #f0f6fc;
+          font-size: 1.2rem;
+        }
+
+        .repository-overview-header p {
+          margin: 0;
+
+          color: #8b949e;
+          font-size: 0.78rem;
+        }
+
+        .repository-overview-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+
+          gap: 1rem;
+        }
+
+        .repository-overview-panel {
+          min-width: 0;
+
+          overflow: hidden;
+
+          border: 1px solid #30363d;
+          border-radius: 12px;
+
+          background: #161b22;
+        }
+
+        .repository-branch-list,
+        .repository-recent-commits {
+          max-height: 420px;
+          overflow-y: auto;
+        }
+
+        .repository-branch-item {
+          display: flex;
+          align-items: center;
+          gap: 0.65rem;
+
+          min-height: 48px;
+          padding: 0.65rem 1rem;
+
+          border-bottom: 1px solid #21262d;
+        }
+
+        .branch-indicator {
+          color: #3fb950;
+          font-size: 0.55rem;
+        }
+
+        .repository-branch-name {
+          min-width: 0;
+
+          overflow: hidden;
+
+          color: #e6edf3;
+
+          font-size: 0.78rem;
+          font-weight: 650;
+
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .repository-branch-item code {
+          margin-left: auto;
+
+          color: #6e7681;
+
+          font-family:
+            ui-monospace,
+            SFMono-Regular,
+            Menlo,
+            Monaco,
+            Consolas,
+            monospace;
+
+          font-size: 0.62rem;
+        }
+
+        .repository-view-button {
+          padding: 0.4rem 0.65rem;
+
+          border: 1px solid #30363d;
+          border-radius: 6px;
+
+          color: #8b949e;
+          background: #0d1117;
+
+          font-size: 0.68rem;
+          font-weight: 700;
+        }
+
+        .repository-view-button:hover {
+          color: #e6edf3;
+          background: #21262d;
+        }
+
+        .repository-recent-commit {
+          width: 100%;
+
+          display: grid;
+          grid-template-columns: 55px minmax(0, 1fr) 100px;
+          align-items: center;
+
+          gap: 0.7rem;
+
+          min-height: 48px;
+          padding: 0.65rem 1rem;
+
+          border: 0;
+          border-bottom: 1px solid #21262d;
+
+          text-align: left;
+
+          color: #e6edf3;
+          background: transparent;
+        }
+
+        .repository-recent-commit:hover {
+          background: #1c2128;
+        }
+
+        .repository-recent-commit code {
+          color: #58a6ff;
+
+          font-family:
+            ui-monospace,
+            SFMono-Regular,
+            Menlo,
+            Monaco,
+            Consolas,
+            monospace;
+
+          font-size: 0.62rem;
+        }
+
+        .repository-recent-message {
+          min-width: 0;
+
+          overflow: hidden;
+
+          font-size: 0.72rem;
+
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .repository-recent-author {
+          overflow: hidden;
+
+          color: #6e7681;
+
+          font-size: 0.62rem;
+
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        @media (max-width: 800px) {
+          .repository-overview-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        @media (max-width: 600px) {
+          .repository-recent-commit {
+            grid-template-columns: 55px minmax(0, 1fr);
+          }
+
+          .repository-recent-author {
+            display: none;
+          }
+        }
