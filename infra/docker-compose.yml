@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: git-internals-explorer-postgres
+    environment:
+      POSTGRES_DB: git_explorer
+      POSTGRES_USER: git_explorer
+      POSTGRES_PASSWORD: git_explorer
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
