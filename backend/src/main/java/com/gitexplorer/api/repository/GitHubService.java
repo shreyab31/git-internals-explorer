@@ -1,5 +1,6 @@
 package com.gitexplorer.api.repository;
 import com.gitexplorer.api.dto.BlobResponse;
+import com.gitexplorer.api.dto.DiffEntryResponse;
 import com.gitexplorer.api.dto.CommitResponse;
 import com.gitexplorer.api.dto.RefResponse;
 import com.gitexplorer.api.dto.ObjectGraphResponse;
@@ -186,6 +187,71 @@ public class GitHubService {
                             Instant.parse(committedAt),
                             parentIds,
                             List.of(ref)
+                    )
+            );
+        }
+
+        return results;
+    }
+    public List<DiffEntryResponse> getCommitDiff(
+            String url,
+            String commitId
+    ) throws Exception {
+
+        RepositoryCoordinates repository =
+                parseRepositoryUrl(url);
+
+        String apiUrl =
+                "https://api.github.com/repos/"
+                        + repository.owner()
+                        + "/"
+                        + repository.name()
+                        + "/commits/"
+                        + commitId;
+
+        JsonNode commit = get(apiUrl);
+
+        List<DiffEntryResponse> results =
+                new ArrayList<>();
+
+        for (JsonNode file : commit.path("files")) {
+
+            String filename =
+                    file.path("filename").asText();
+
+            String status =
+                    file.path("status").asText();
+
+            int additions =
+                    file.path("additions").asInt();
+
+            int deletions =
+                    file.path("deletions").asInt();
+
+            String previousFilename =
+                    file.path("previous_filename").asText("");
+
+            String oldPath;
+            String newPath;
+
+            if ("renamed".equals(status)) {
+                oldPath = previousFilename;
+                newPath = filename;
+            } else if ("deleted".equals(status)) {
+                oldPath = filename;
+                newPath = "";
+            } else {
+                oldPath = "";
+                newPath = filename;
+            }
+
+            results.add(
+                    new DiffEntryResponse(
+                            oldPath,
+                            newPath,
+                            status.toUpperCase(),
+                            additions,
+                            deletions
                     )
             );
         }

@@ -132,45 +132,22 @@ export function App() {
       }
     }
   async function selectCommit(commit: Commit) {
-    setSelectedCommit(commit);
-    setSelectedTreeId(null);
-    setDiffs([]);
-    setError("");
+      setSelectedCommit(commit);
+      setDiffs([]);
+      setError("");
 
-    try {
-      const params = new URLSearchParams({ path });
+      try {
+          const diffData =
+              await getCommitDiff(path, commit.id);
 
-      const treeResponse = await fetch(
-        `/api/repositories/commits/${commit.id}/tree?${params.toString()}`
-      );
-
-      if (!treeResponse.ok) {
-        throw new Error("Could not load commit tree.");
+          setDiffs(diffData);
+      } catch (err) {
+          setError(
+              err instanceof Error
+                  ? err.message
+                  : "Could not load commit changes."
+          );
       }
-
-      const treeData: {
-        commitId: string;
-        treeId: string;
-      } = await treeResponse.json();
-
-      setSelectedTreeId(treeData.treeId);
-
-      const graphData =
-        await getObjectGraph(path, commit.id);
-
-      setObjectGraph(graphData);
-
-      const diffData =
-        await getCommitDiff(path, commit.id);
-
-      setDiffs(diffData);
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Could not load commit details."
-      );
-    }
   }
 
   const currentBranch = refs.find(
@@ -311,13 +288,6 @@ export function App() {
                          commit={selectedCommit}
                          diffs={diffs}
                      />
-
-                     {selectedCommit && (
-                         <ObjectInspector
-                           objectGraph={objectGraph}
-                           path={path}
-                         />
-                     )}
                  </div>
              </section>
             </>

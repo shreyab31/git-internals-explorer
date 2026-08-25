@@ -62,6 +62,23 @@ export async function getCommits(
 
     return response.json();
 }
+export async function getCommitDiff(
+    path: string,
+    commitId: string
+): Promise<DiffEntry[]> {
+    const params = createPathParams(path);
+
+    const response = await fetch(
+        `/api/repositories/commits/${commitId}/diff?${params.toString()}`
+    );
+
+    await requireResponse(
+        response,
+        "Could not load commit changes."
+    );
+
+    return response.json();
+}
 
 export async function getRefs(
     path: string
@@ -78,24 +95,6 @@ export async function getRefs(
     );
 
     return response.json();
-}
-
-export async function getCommitDiff(
-  path: string,
-  commitId: string
-): Promise<DiffEntry[]> {
-  const params = createPathParams(path);
-
-  const response = await fetch(
-    `/api/repositories/commits/${commitId}/diff?${params.toString()}`
-  );
-
-  await requireResponse(
-    response,
-    "Could not load commit changes."
-  );
-
-  return response.json();
 }
 
 export async function getCommitTree(

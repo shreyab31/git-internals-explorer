@@ -51,7 +51,17 @@ public class RepositoryController {
                 ref
         );
     }
+    @GetMapping("/commits/{commitId}/diff")
+    public List<DiffEntryResponse> getCommitDiff(
+            @PathVariable String commitId,
+            @RequestParam String path
+    ) throws Exception {
 
+        return gitHubService.getCommitDiff(
+                path,
+                commitId
+        );
+    }
     @GetMapping("/commits/{commitId}/objects")
     public ObjectGraphResponse getObjectGraph(
             @PathVariable String commitId,
