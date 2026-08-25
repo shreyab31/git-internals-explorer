@@ -21,6 +21,7 @@ export type DiffEntry = {
   changeType: string;
   additions: number;
   deletions: number;
+  patch: string | null;
 };
 
 export type RepositoryInfo = {

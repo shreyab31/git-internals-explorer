@@ -5,6 +5,7 @@ public record DiffEntryResponse(
         String newPath,
         String changeType,
         int additions,
-        int deletions
+        int deletions,
+        String patch
 ) {
 }

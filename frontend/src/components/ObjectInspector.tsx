@@ -4,11 +4,13 @@ import { ObjectGraphView } from "./ObjectGraphView";
 type ObjectInspectorProps = {
   objectGraph: ObjectGraph | null;
   path: string;
+  onSelectCommit: (commitId: string) => void;
 };
 
 export function ObjectInspector({
   objectGraph,
   path,
+  onSelectCommit,
 }: ObjectInspectorProps) {
   if (!objectGraph) {
     return (
@@ -49,6 +51,7 @@ export function ObjectInspector({
       <ObjectGraphView
         objectGraph={objectGraph}
         path={path}
+        onSelectCommit={onSelectCommit}
       />
     </section>
   );

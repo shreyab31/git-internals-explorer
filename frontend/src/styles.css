@@ -2519,3 +2519,237 @@
             display: none;
           }
         }
+        .diff-file {
+          border-bottom: 1px solid #21262d;
+        }
+
+        .diff-file .diff-item {
+          width: 100%;
+          border-bottom: 0;
+          background: transparent;
+          cursor: pointer;
+          text-align: left;
+        }
+
+        .diff-expand-icon {
+          width: 14px;
+          flex-shrink: 0;
+          color: #8b949e;
+          font-size: 0.7rem;
+        }
+
+        /* --------------------------------------------------
+           DIFF VIEWER
+        -------------------------------------------------- */
+
+        .diff-patch {
+          margin: 0;
+
+          overflow-x: auto;
+          overflow-y: auto;
+
+          border-top: 1px solid #30363d;
+
+          background: #0d1117;
+
+          color: #c9d1d9;
+
+          font-family:
+            ui-monospace,
+            SFMono-Regular,
+            Menlo,
+            Monaco,
+            Consolas,
+            monospace;
+
+          font-size: 0.68rem;
+          line-height: 1.55;
+        }
+
+        /* Column headers */
+
+        .diff-gutter-header {
+          display: grid;
+
+          grid-template-columns:
+            28px
+            52px
+            52px
+            minmax(max-content, 1fr);
+
+          min-width: max-content;
+
+          padding: 0.45rem 0;
+
+          border-bottom: 1px solid #30363d;
+
+          color: #6e7681;
+
+          background: #161b22;
+
+          font-size: 0.56rem;
+          font-weight: 800;
+          letter-spacing: 0.06em;
+          text-align: right;
+        }
+
+        .diff-gutter-header span:nth-child(1),
+        .diff-gutter-header span:nth-child(4) {
+          text-align: left;
+        }
+
+        /* Every diff row */
+
+        .diff-line {
+          display: grid;
+
+          grid-template-columns:
+            28px
+            52px
+            52px
+            minmax(max-content, 1fr);
+
+          min-width: max-content;
+
+          min-height: 1.55em;
+
+          padding: 0;
+
+          white-space: pre;
+        }
+
+        /* +/- gutter */
+
+        .diff-line-marker {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          color: #6e7681;
+
+          user-select: none;
+        }
+
+        /* Old/new line numbers */
+
+        .diff-line-number {
+          padding: 0 0.55rem;
+
+          border-right: 1px solid rgba(48, 54, 61, 0.55);
+
+          color: #6e7681;
+
+          text-align: right;
+
+          user-select: none;
+        }
+
+        /* Actual source text */
+
+        .diff-line-content {
+          padding: 0 0.75rem;
+
+          white-space: pre;
+        }
+
+        /* Context */
+
+        .diff-line-context {
+          background: #0d1117;
+        }
+
+        /* Added */
+
+        .diff-line-addition {
+          color: #3fb950;
+
+          background: rgba(46, 160, 67, 0.12);
+        }
+
+        .diff-line-addition .diff-line-marker {
+          color: #3fb950;
+          font-weight: 800;
+        }
+
+        .diff-line-addition .diff-line-number {
+          color: #6e7681;
+
+          background: rgba(46, 160, 67, 0.08);
+        }
+
+        /* Deleted */
+
+        .diff-line-deletion {
+          color: #f85149;
+
+          background: rgba(248, 81, 73, 0.12);
+        }
+
+        .diff-line-deletion .diff-line-marker {
+          color: #f85149;
+          font-weight: 800;
+        }
+
+        .diff-line-deletion .diff-line-number {
+          color: #6e7681;
+
+          background: rgba(248, 81, 73, 0.08);
+        }
+
+        /* @@ hunk headers */
+
+        .diff-line-header {
+          grid-template-columns:
+            28px
+            52px
+            52px
+            minmax(max-content, 1fr);
+
+          margin-top: 0.2rem;
+          margin-bottom: 0.1rem;
+
+          color: #d2a8ff;
+
+          background: rgba(210, 168, 255, 0.08);
+
+          font-weight: 600;
+        }
+
+        .diff-line-header .diff-line-content {
+          padding-top: 0.15rem;
+          padding-bottom: 0.15rem;
+        }
+
+        /* Git metadata such as ---, +++, index */
+
+        .diff-line-meta {
+          color: #8b949e;
+
+          background: #0d1117;
+        }
+
+        .diff-line-meta .diff-line-content {
+          padding-top: 0.05rem;
+          padding-bottom: 0.05rem;
+        }
+
+        /* No newline metadata */
+
+        .diff-line-meta .diff-line-marker {
+          color: #6e7681;
+        }
+
+        /* Missing patch */
+
+        .diff-patch-unavailable {
+          padding: 1rem;
+
+          border-top: 1px solid #30363d;
+
+          color: #6e7681;
+
+          background: #0d1117;
+
+          font-size: 0.72rem;
+          font-style: italic;
+        }

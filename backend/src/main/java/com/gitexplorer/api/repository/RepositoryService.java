@@ -13,6 +13,8 @@ import com.gitexplorer.api.dto.RefResponse;
 import org.eclipse.jgit.diff.RawTextComparator;
 import org.eclipse.jgit.diff.Edit;
 import org.eclipse.jgit.diff.EditList;
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
 import org.eclipse.jgit.diff.RawText;
 import java.util.ArrayList;
 import java.util.List;
@@ -411,12 +413,33 @@ public class RepositoryService {
                             deletions = oldText.size();
                         }
 
+                        String patch;
+
+                        try (ByteArrayOutputStream patchOutput =
+                                     new ByteArrayOutputStream();
+                             DiffFormatter patchFormatter =
+                                     new DiffFormatter(patchOutput)) {
+
+                            patchFormatter.setRepository(repository);
+                            patchFormatter.setDiffComparator(RawTextComparator.DEFAULT);
+                            patchFormatter.setDetectRenames(true);
+
+                            patchFormatter.format(diff);
+                            patchFormatter.flush();
+
+                            patch =
+                                    patchOutput.toString(
+                                            StandardCharsets.UTF_8
+                                    );
+                        }
+
                         results.add(new DiffEntryResponse(
                                 diff.getOldPath(),
                                 diff.getNewPath(),
                                 diff.getChangeType().name(),
                                 additions,
-                                deletions
+                                deletions,
+                                patch
                         ));
                     }
 

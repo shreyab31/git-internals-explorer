@@ -63,41 +63,62 @@ public class GitHubService {
         RepositoryCoordinates repository =
                 parseRepositoryUrl(url);
 
-        String apiUrl =
-                "https://api.github.com/repos/"
-                        + repository.owner()
-                        + "/"
-                        + repository.name()
-                        + "/branches?per_page=100";
-
-        JsonNode branches =
-                get(apiUrl);
-
         List<RefResponse> refs =
                 new ArrayList<>();
 
-        for (JsonNode branch : branches) {
+        int page = 1;
+        int perPage = 100;
 
-            String name =
-                    branch.path("name").asText();
+        while (true) {
 
-            String target =
-                    branch
-                            .path("commit")
-                            .path("sha")
-                            .asText();
+            String apiUrl =
+                    "https://api.github.com/repos/"
+                            + repository.owner()
+                            + "/"
+                            + repository.name()
+                            + "/branches?per_page="
+                            + perPage
+                            + "&page="
+                            + page;
 
-            refs.add(
-                    new RefResponse(
-                            name,
-                            "BRANCH",
-                            target
-                    )
-            );
+            JsonNode branches =
+                    get(apiUrl);
+
+            if (!branches.isArray()
+                    || branches.size() == 0) {
+                break;
+            }
+
+            for (JsonNode branch : branches) {
+
+                String name =
+                        branch.path("name").asText();
+
+                String target =
+                        branch
+                                .path("commit")
+                                .path("sha")
+                                .asText();
+
+                refs.add(
+                        new RefResponse(
+                                name,
+                                "BRANCH",
+                                target
+                        )
+                );
+            }
+
+            if (branches.size() < perPage) {
+                break;
+            }
+
+            page++;
         }
 
         return refs;
     }
+
     public List<CommitResponse> getCommitHistory(
             String url,
             String ref
@@ -106,89 +127,109 @@ public class GitHubService {
         RepositoryCoordinates repository =
                 parseRepositoryUrl(url);
 
-        String apiUrl =
-                "https://api.github.com/repos/"
-                        + repository.owner()
-                        + "/"
-                        + repository.name()
-                        + "/commits?sha="
-                        + java.net.URLEncoder.encode(
-                        ref,
-                        java.nio.charset.StandardCharsets.UTF_8
-                )
-                        + "&per_page=100";
-
-        JsonNode commits = get(apiUrl);
-
         List<CommitResponse> results =
                 new ArrayList<>();
 
-        for (JsonNode commitNode : commits) {
+        int page = 1;
+        int perPage = 100;
 
-            String id =
-                    commitNode.path("sha").asText();
+        while (true) {
 
-            String message =
-                    commitNode
-                            .path("commit")
-                            .path("message")
-                            .asText();
+            String apiUrl =
+                    "https://api.github.com/repos/"
+                            + repository.owner()
+                            + "/"
+                            + repository.name()
+                            + "/commits?sha="
+                            + java.net.URLEncoder.encode(
+                            ref,
+                            java.nio.charset.StandardCharsets.UTF_8
+                    )
+                            + "&per_page="
+                            + perPage
+                            + "&page="
+                            + page;
 
-            String shortId =
-                    id.substring(0, 7);
+            JsonNode commits = get(apiUrl);
 
-            String author =
-                    commitNode
-                            .path("commit")
-                            .path("author")
-                            .path("name")
-                            .asText("unknown");
+            if (!commits.isArray() ||
+                    commits.isEmpty()) {
+                break;
+            }
 
-            String authoredAt =
-                    commitNode
-                            .path("commit")
-                            .path("author")
-                            .path("date")
-                            .asText();
+            for (JsonNode commitNode : commits) {
 
-            String committer =
-                    commitNode
-                            .path("commit")
-                            .path("committer")
-                            .path("name")
-                            .asText("unknown");
+                String id =
+                        commitNode.path("sha").asText();
 
-            String committedAt =
-                    commitNode
-                            .path("commit")
-                            .path("committer")
-                            .path("date")
-                            .asText();
+                String message =
+                        commitNode
+                                .path("commit")
+                                .path("message")
+                                .asText();
 
-            List<String> parentIds =
-                    new ArrayList<>();
+                String shortId =
+                        id.substring(0, 7);
 
-            for (JsonNode parent :
-                    commitNode.path("parents")) {
+                String author =
+                        commitNode
+                                .path("commit")
+                                .path("author")
+                                .path("name")
+                                .asText("unknown");
 
-                parentIds.add(
-                        parent.path("sha").asText()
+                String authoredAt =
+                        commitNode
+                                .path("commit")
+                                .path("author")
+                                .path("date")
+                                .asText();
+
+                String committer =
+                        commitNode
+                                .path("commit")
+                                .path("committer")
+                                .path("name")
+                                .asText("unknown");
+
+                String committedAt =
+                        commitNode
+                                .path("commit")
+                                .path("committer")
+                                .path("date")
+                                .asText();
+
+                List<String> parentIds =
+                        new ArrayList<>();
+
+                for (JsonNode parent :
+                        commitNode.path("parents")) {
+
+                    parentIds.add(
+                            parent.path("sha").asText()
+                    );
+                }
+
+                results.add(
+                        new CommitResponse(
+                                id,
+                                shortId,
+                                message.split("\n", 2)[0],
+                                author,
+                                Instant.parse(authoredAt),
+                                committer,
+                                Instant.parse(committedAt),
+                                parentIds,
+                                List.of(ref)
+                        )
                 );
             }
 
-            results.add(
-                    new CommitResponse(
-                            id,
-                            shortId,
-                            message.split("\n", 2)[0],
-                            author,
-                            Instant.parse(authoredAt),
-                            committer,
-                            Instant.parse(committedAt),
-                            parentIds,
-                            List.of(ref)
-                    )
-            );
+            if (commits.size() < perPage) {
+                break;
+            }
+
+            page++;
         }
 
         return results;
@@ -228,6 +269,11 @@ public class GitHubService {
             int deletions =
                     file.path("deletions").asInt();
 
+            String patch =
+                    file.path("patch").isMissingNode()
+                            ? null
+                            : file.path("patch").asText();
+
             String previousFilename =
                     file.path("previous_filename").asText("");
 
@@ -251,7 +297,8 @@ public class GitHubService {
                             newPath,
                             status.toUpperCase(),
                             additions,
-                            deletions
+                            deletions,
+                            patch
                     )
             );
         }

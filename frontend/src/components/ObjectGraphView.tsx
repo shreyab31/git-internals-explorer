@@ -8,6 +8,7 @@ import { BlobViewer } from "./BlobViewer";
 type ObjectGraphViewProps = {
   objectGraph: ObjectGraph;
   path: string;
+  onSelectCommit: (commitId: string) => void;
 };
 
 type SelectedObject = {
@@ -108,7 +109,7 @@ function TreeEntryNode({
 
         <code
           className="git-tree-sha"
-          title={entry.id}
+          title={`Inspect ${entry.type.toLowerCase()} ${entry.id}`}
         >
           {shortId(entry.id)}
         </code>
@@ -206,6 +207,7 @@ function ObjectCard({
 export function ObjectGraphView({
   objectGraph,
   path,
+  onSelectCommit,
 }: ObjectGraphViewProps) {
   const [selectedObject, setSelectedObject] =
     useState<SelectedObject>({
@@ -369,20 +371,7 @@ export function ObjectGraphView({
                       selectedObject.id ===
                       parentId
                     }
-                    onClick={() =>
-                      selectObject({
-                        type: "COMMIT",
-                        id: parentId,
-                        name:
-                          objectGraph
-                            .parentIds
-                            .length > 1
-                            ? `Parent commit ${
-                                index + 1
-                              }`
-                            : "Parent commit",
-                      })
-                    }
+                    onClick={() => onSelectCommit(parentId)}
                   />
                 )
               )}

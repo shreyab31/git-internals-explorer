@@ -2,10 +2,11 @@ import { useMemo, useState } from "react";
 import type { Commit, Ref } from "../types/git";
 
 type BranchGraphProps = {
-  commits: Commit[];
-  refs: Ref[];
-  selectedCommitId: string | null;
-  onSelectCommit: (commit: Commit) => void;
+    commits: Commit[];
+    refs: Ref[];
+    selectedBranch: Ref | null;
+    selectedCommitId: string | null;
+    onSelectCommit: (commit: Commit) => void;
 };
 
 type GraphNode = {
@@ -40,92 +41,87 @@ function getBranchesForCommit(commitId: string, refs: Ref[]) {
 }
 
 function getRelevantCommits(
-  commits: Commit[],
-  selectedCommitId: string | null,
-  depth = 4
+    commits: Commit[],
+    selectedBranch: Ref | null,
+    selectedCommitId: string | null,
+    windowSize = 30
 ) {
-  if (!selectedCommitId) {
-    return commits.slice(0, 12);
-  }
-
-  const commitMap = buildCommitMap(commits);
-
-  const children = new Map<string, Commit[]>();
-
-  for (const commit of commits) {
-    for (const parentId of commit.parentIds) {
-      const list = children.get(parentId) ?? [];
-      list.push(commit);
-      children.set(parentId, list);
+    if (commits.length === 0) {
+        return [];
     }
-  }
 
-  const selected = commitMap.get(selectedCommitId);
+    /*
+     * GitHub returns commits newest -> oldest.
+     *
+     * The selected branch tells us which history
+     * we are currently looking at.
+     */
+    const branchHeadId = selectedBranch?.target;
 
-  if (!selected) {
-    return commits.slice(0, 12);
-  }
+    /*
+     * If a branch is selected, find its HEAD in the
+     * loaded commit history.
+     */
+    let centerIndex = 0;
 
-  const result = new Map<string, Commit>();
-  result.set(selected.id, selected);
+    if (selectedCommitId) {
+        const selectedIndex = commits.findIndex(
+            (commit) =>
+                commit.id === selectedCommitId
+        );
 
-  // Walk upward through parents.
-  let parents = [selected];
-
-  for (let level = 0; level < depth; level++) {
-    const next: Commit[] = [];
-
-    for (const commit of parents) {
-      for (const parentId of commit.parentIds) {
-        const parent = commitMap.get(parentId);
-
-        if (parent && !result.has(parent.id)) {
-          result.set(parent.id, parent);
-          next.push(parent);
+        if (selectedIndex !== -1) {
+            centerIndex = selectedIndex;
         }
-      }
-    }
+    } else if (branchHeadId) {
+        const headIndex = commits.findIndex(
+            (commit) =>
+                commit.id === branchHeadId
+        );
 
-    parents = next;
-
-    if (parents.length === 0) {
-      break;
-    }
-  }
-
-  // Walk downward through children.
-  let descendants = [selected];
-
-  for (let level = 0; level < depth; level++) {
-    const next: Commit[] = [];
-
-    for (const commit of descendants) {
-      for (const child of children.get(commit.id) ?? []) {
-        if (!result.has(child.id)) {
-          result.set(child.id, child);
-          next.push(child);
+        if (headIndex !== -1) {
+            centerIndex = headIndex;
         }
-      }
     }
 
-    descendants = next;
+    /*
+     * Keep the selected commit roughly in the middle
+     * of the visible window.
+     */
+    const halfWindow =
+        Math.floor(windowSize / 2);
 
-    if (descendants.length === 0) {
-      break;
+    let start =
+        centerIndex - halfWindow;
+
+    let end =
+        start + windowSize;
+
+    /*
+     * If we are near the beginning, push the window
+     * downward so we still show windowSize commits.
+     */
+    if (start < 0) {
+        start = 0;
+        end = Math.min(
+            windowSize,
+            commits.length
+        );
     }
-  }
 
-  return Array.from(result.values());
+    /*
+     * If we are near the end, pull the window upward.
+     */
+    if (end > commits.length) {
+        end = commits.length;
+        start = Math.max(
+            0,
+            end - windowSize
+        );
+    }
+
+    return commits.slice(start, end);
 }
-
-/*
- * Topological ordering.
- *
- * A parent MUST appear before its child.
- *
- * This is deliberately not based on authoredAt.
- * Git history is defined by parent relationships.
- */
 function topologicalOrder(commits: Commit[]) {
   const commitMap = buildCommitMap(commits);
 
@@ -225,10 +221,11 @@ function topologicalOrder(commits: Commit[]) {
  * Therefore every parent is guaranteed to have a smaller Y.
  */
 export function BranchGraph({
-  commits,
-  refs,
-  selectedCommitId,
-  onSelectCommit,
+    commits,
+    refs,
+    selectedBranch,
+    selectedCommitId,
+    onSelectCommit,
 }: BranchGraphProps) {
   const [hoveredCommitId, setHoveredCommitId] =
     useState<string | null>(null);
@@ -238,12 +235,18 @@ export function BranchGraph({
   );
 
   const relevantCommits = useMemo(
-    () =>
-      getRelevantCommits(
-        commits,
-        selectedCommitId
-      ),
-    [commits, selectedCommitId]
+      () =>
+          getRelevantCommits(
+              commits,
+              selectedBranch,
+              selectedCommitId,
+              30
+          ),
+      [
+          commits,
+          selectedBranch,
+          selectedCommitId,
+      ]
   );
 
   const commitMap = useMemo(
@@ -252,22 +255,15 @@ export function BranchGraph({
   );
 
   const graph = useMemo(() => {
-    const relevantIds = new Set(
-      relevantCommits.map((commit) => commit.id)
-    );
+      console.log("GRAPH DEBUG", {
+        commits: commits.length,
+        selectedBranch,
+        relevantCommits: relevantCommits.length,
+      });
+      const relevantIds = new Set(
+          relevantCommits.map((commit) => commit.id)
+      );
 
-    const selected = selectedCommitId
-      ? commitMap.get(selectedCommitId)
-      : relevantCommits[0];
-
-    if (!selected) {
-      return {
-        nodes: [] as GraphNode[],
-        edges: [] as GraphEdge[],
-        width: 900,
-        height: 500,
-      };
-    }
 
     /*
      * ---------------------------------------------------------
@@ -654,12 +650,11 @@ export function BranchGraph({
       width,
       height,
     };
-  }, [
-    commitMap,
-    refs,
-    relevantCommits,
-    selectedCommitId,
-  ]);
+ }, [
+     refs,
+     relevantCommits,
+     selectedCommitId,
+ ]);
 
   if (commits.length === 0) {
     return (

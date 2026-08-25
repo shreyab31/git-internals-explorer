@@ -30,6 +30,9 @@ export function App() {
   const [selectedCommit, setSelectedCommit] =
     useState<Commit | null>(null);
 
+  const [selectedBranch, setSelectedBranch] =
+  useState<Ref | null>(null);
+
   const [diffs, setDiffs] = useState<DiffEntry[]>([]);
 
   const [selectedTreeId, setSelectedTreeId] =
@@ -66,39 +69,42 @@ export function App() {
           const repositoryData =
               await openRepositoryApi(path);
 
-          const refsData = await getRefs(path);
+          const refsData =
+              await getRefs(path);
 
-          const branchCommits = await Promise.all(
-              refsData
-                  .filter((ref) => ref.type === "BRANCH")
-                  .map((ref) => getCommits(path, ref.name))
-          );
+          const branches =
+              refsData.filter(
+                  (ref) => ref.type === "BRANCH"
+              );
 
-          const commitsData = Array.from(
-              new Map(
-                  branchCommits
-                      .flat()
-                      .map((commit) => [commit.id, commit])
-              ).values()
-          );
+          const defaultBranch =
+              branches.find(
+                  (ref) => ref.name === "main"
+              ) ??
+              branches[0] ??
+              null;
+
+          let commitsData: Commit[] = [];
+
+          if (defaultBranch) {
+              commitsData =
+                  await getCommits(
+                      path,
+                      defaultBranch.name
+                  );
+          }
 
           setRepository(repositoryData);
           setCommits(commitsData);
           setRefs(refsData);
+          setSelectedBranch(defaultBranch);
 
           setSelectedCommit(null);
           setSelectedTreeId(null);
           setObjectGraph(null);
           setDiffs([]);
+
       } catch (err) {
-          setRepository(null);
-          setCommits([]);
-          setRefs([]);
-          setSelectedCommit(null);
-          setSelectedTreeId(null);
-          setObjectGraph(null);
-          setDiffs([]);
-
           setError(
               err instanceof Error
                   ? err.message
@@ -150,10 +156,33 @@ export function App() {
       }
   }
 
-  const currentBranch = refs.find(
-    (ref) => ref.type === "BRANCH"
-  );
+  const currentBranch = selectedBranch;
+  async function selectBranch(branch: Ref) {
+      setSelectedBranch(branch);
+      setSelectedCommit(null);
+      setDiffs([]);
+      setError("");
+      setLoading(true);
 
+      try {
+          const branchCommits = await getCommits(
+              path,
+              branch.name
+          );
+
+          setCommits(branchCommits);
+      } catch (err) {
+          setCommits([]);
+
+          setError(
+              err instanceof Error
+                  ? err.message
+                  : "Could not load branch commits."
+          );
+      } finally {
+          setLoading(false);
+      }
+  }
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -277,9 +306,9 @@ export function App() {
                                 {ref.name}
                               </span>
 
-                              <code title={ref.target}>
-                                {ref.target.slice(0, 7)}
-                              </code>
+                             <code title={ref.target ?? ""}>
+                               {ref.target?.slice(0, 7) ?? "—"}
+                             </code>
                             </div>
                           ))
                       )}
@@ -376,6 +405,47 @@ export function App() {
 
           {repository ? (
             <>
+            <section className="commit-branch-selector">
+                <div>
+                    <span className="summary-label">
+                        Branch
+                    </span>
+
+                    <h2>
+                        Choose a branch to inspect
+                    </h2>
+                </div>
+
+                <select
+                    value={selectedBranch?.name ?? ""}
+                    onChange={(event) => {
+                        const branch = refs.find(
+                            (ref) =>
+                                ref.type === "BRANCH" &&
+                                ref.name === event.target.value
+                        );
+
+                        if (branch) {
+                            selectBranch(branch);
+                        }
+                    }}
+                >
+                    <option value="" disabled>
+                        Select branch
+                    </option>
+
+                    {refs
+                        .filter((ref) => ref.type === "BRANCH")
+                        .map((ref) => (
+                            <option
+                                key={ref.name}
+                                value={ref.name}
+                            >
+                                {ref.name}
+                            </option>
+                        ))}
+                </select>
+            </section>
               <section className="repository-summary">
                 <div>
                   <span className="summary-label">
@@ -408,6 +478,7 @@ export function App() {
                  <BranchGraph
                      commits={commits}
                      refs={refs}
+                     selectedBranch={selectedBranch}
                      selectedCommitId={selectedCommit?.id ?? null}
                      onSelectCommit={selectCommit}
                  />
@@ -521,6 +592,15 @@ export function App() {
                 <ObjectInspector
                   objectGraph={objectGraph}
                   path={path}
+                  onSelectCommit={(commitId) => {
+                    const commit = commits.find(
+                      (item) => item.id === commitId
+                    );
+
+                    if (commit) {
+                      selectObjectCommit(commit);
+                    }
+                  }}
                 />
               )}
             </section>
