@@ -7,6 +7,8 @@ import type {
     TreeEntry,
 } from "../types/git";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 function createPathParams(path: string) {
     return new URLSearchParams({ path });
 }
@@ -28,7 +30,7 @@ export async function openRepository(
     const params = createPathParams(path);
 
     const response = await fetch(
-        `/api/repositories/open?${params.toString()}`,
+        `${API_BASE_URL}/api/repositories/open?${params.toString()}`,
         {
             method: "POST",
         }
@@ -54,7 +56,7 @@ export async function getCommits(
     });
 
     const response = await fetch(
-        `/api/repositories/commits?${params.toString()}`
+        `${API_BASE_URL}/api/repositories/commits?${params.toString()}`
     );
 
     await requireResponse(
@@ -71,7 +73,7 @@ export async function getCommitDiff(
     const params = createPathParams(path);
 
     const response = await fetch(
-        `/api/repositories/commits/${commitId}/diff?${params.toString()}`
+        `${API_BASE_URL}/api/repositories/commits/${commitId}/diff?${params.toString()}`
     );
 
     await requireResponse(
@@ -88,7 +90,7 @@ export async function getRefs(
     const params = createPathParams(path);
 
     const response = await fetch(
-        `/api/repositories/refs?${params.toString()}`
+        `${API_BASE_URL}/api/repositories/refs?${params.toString()}`
     );
 
     await requireResponse(
@@ -106,7 +108,7 @@ export async function getCommitTree(
   const params = createPathParams(path);
 
   const response = await fetch(
-    `/api/repositories/commits/${commitId}/tree?${params.toString()}`
+    `${API_BASE_URL}/api/repositories/commits/${commitId}/tree?${params.toString()}`
   );
 
   await requireResponse(
@@ -124,7 +126,7 @@ export async function getTreeEntries(
   const params = createPathParams(path);
 
   const response = await fetch(
-    `/api/repositories/trees/${treeId}?${params.toString()}`
+    `${API_BASE_URL}/api/repositories/trees/${treeId}?${params.toString()}`
   );
 
   await requireResponse(
@@ -142,7 +144,7 @@ export async function getBlob(
   const params = createPathParams(path);
 
   const response = await fetch(
-    `/api/repositories/blobs/${blobId}?${params.toString()}`
+    `${API_BASE_URL}/api/repositories/blobs/${blobId}?${params.toString()}`
   );
 
   await requireResponse(
@@ -177,7 +179,7 @@ export async function getObjectGraph(
   const params = new URLSearchParams({ path });
 
   const response = await fetch(
-    `/api/repositories/commits/${commitId}/objects?${params.toString()}`
+    `${API_BASE_URL}/api/repositories/commits/${commitId}/objects?${params.toString()}`
   );
 
   if (!response.ok) {
