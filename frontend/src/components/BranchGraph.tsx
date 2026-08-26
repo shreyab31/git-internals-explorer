@@ -26,9 +26,7 @@ function shortId(id: string) {
   return id.slice(0, 7);
 }
 
-function buildCommitMap(commits: Commit[]) {
-  return new Map(commits.map((commit) => [commit.id, commit]));
-}
+
 
 function getBranchesForCommit(commitId: string, refs: Ref[]) {
   return refs
@@ -122,92 +120,7 @@ function getRelevantCommits(
 
     return commits.slice(start, end);
 }
-function topologicalOrder(commits: Commit[]) {
-  const commitMap = buildCommitMap(commits);
-
-  const children = new Map<string, Commit[]>();
-  const indegree = new Map<string, number>();
-
-  for (const commit of commits) {
-    indegree.set(commit.id, 0);
-  }
-
-  for (const commit of commits) {
-    for (const parentId of commit.parentIds) {
-      if (!commitMap.has(parentId)) {
-        continue;
-      }
-
-      const list = children.get(parentId) ?? [];
-      list.push(commit);
-      children.set(parentId, list);
-
-      indegree.set(
-        commit.id,
-        (indegree.get(commit.id) ?? 0) + 1
-      );
-    }
-  }
-
-  /*
-   * Start with commits that have no relevant parents.
-   * These are the roots of the visible graph.
-   */
-  const queue = commits
-    .filter((commit) => (indegree.get(commit.id) ?? 0) === 0)
-    .sort(
-      (a, b) =>
-        new Date(a.authoredAt).getTime() -
-        new Date(b.authoredAt).getTime()
-    );
-
-  const ordered: Commit[] = [];
-
-  while (queue.length > 0) {
-    const commit = queue.shift()!;
-
-    ordered.push(commit);
-
-    for (const child of children.get(commit.id) ?? []) {
-      const nextIndegree =
-        (indegree.get(child.id) ?? 0) - 1;
-
-      indegree.set(child.id, nextIndegree);
-
-      if (nextIndegree === 0) {
-        queue.push(child);
-
-        queue.sort(
-          (a, b) =>
-            new Date(a.authoredAt).getTime() -
-            new Date(b.authoredAt).getTime()
-        );
-      }
-    }
-  }
-
-  /*
-   * Normally every commit is included because a Git DAG has no cycles.
-   * This fallback protects the UI from malformed/incomplete data.
-   */
-  if (ordered.length !== commits.length) {
-    const alreadyAdded = new Set(
-      ordered.map((commit) => commit.id)
-    );
-
-    const remaining = commits
-      .filter((commit) => !alreadyAdded.has(commit.id))
-      .sort(
-        (a, b) =>
-          new Date(a.authoredAt).getTime() -
-          new Date(b.authoredAt).getTime()
-      );
-
-    ordered.push(...remaining);
-  }
-
-  return ordered;
-}
+// helper topologicalOrder removed — implementation nested inside graph building
 
 /*
  * Calculate the topological level of every commit.
@@ -249,17 +162,10 @@ export function BranchGraph({
       ]
   );
 
-  const commitMap = useMemo(
-    () => buildCommitMap(commits),
-    [commits]
-  );
+
 
   const graph = useMemo(() => {
-      console.log("GRAPH DEBUG", {
-        commits: commits.length,
-        selectedBranch,
-        relevantCommits: relevantCommits.length,
-      });
+      // debug logging removed
       const relevantIds = new Set(
           relevantCommits.map((commit) => commit.id)
       );
@@ -651,9 +557,8 @@ export function BranchGraph({
       height,
     };
  }, [
-     refs,
-     relevantCommits,
-     selectedCommitId,
+   refs,
+   relevantCommits,
  ]);
 
   if (commits.length === 0) {

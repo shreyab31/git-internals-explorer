@@ -3,7 +3,7 @@ spring:
     name: git-internals-explorer-api
 
   datasource:
-    url: jdbc:postgresql://127.0.0.1:5432/git_explorer
+    url: jdbc:postgresql://127.0.0.1:5433/git_explorer
     username: git_explorer
     password: git_explorer
 

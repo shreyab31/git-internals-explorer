@@ -38,6 +38,7 @@ function DiffPatch({ patch }: { patch: string | null }) {
           );
 
           if (match) {
+            // eslint-disable-next-line react-hooks/immutability
             oldLine = Number(match[1]);
             newLine = Number(match[2]);
           }

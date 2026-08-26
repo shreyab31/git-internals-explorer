@@ -41,14 +41,9 @@ public class GitHubService {
         RepositoryCoordinates repository =
                 parseRepositoryUrl(url);
 
-        String apiUrl =
-                "https://api.github.com/repos/"
-                        + repository.owner()
-                        + "/"
-                        + repository.name();
+        String apiUrl = apiBase(repository);
 
-        JsonNode repositoryData =
-                get(apiUrl);
+        JsonNode repositoryData = get(apiUrl);
 
         return Map.of(
                 "path", url,
@@ -73,15 +68,7 @@ public class GitHubService {
 
         while (true) {
 
-            String apiUrl =
-                    "https://api.github.com/repos/"
-                            + repository.owner()
-                            + "/"
-                            + repository.name()
-                            + "/branches?per_page="
-                            + perPage
-                            + "&page="
-                            + page;
+            String apiUrl = apiBase(repository) + "/branches?per_page=" + perPage + "&page=" + page;
 
             JsonNode branches =
                     get(apiUrl);
@@ -132,19 +119,12 @@ public class GitHubService {
         int effectiveLimit =
                 Math.max(1, Math.min(limit, 100));
 
-        String apiUrl =
-                "https://api.github.com/repos/"
-                        + repository.owner()
-                        + "/"
-                        + repository.name()
-                        + "/commits?sha="
-                        + java.net.URLEncoder.encode(
-                        ref,
-                        java.nio.charset.StandardCharsets.UTF_8
-                )
-                        + "&per_page="
-                        + effectiveLimit
-                        + "&page=1";
+        String apiUrl = apiBase(repository)
+                + "/commits?sha="
+                + java.net.URLEncoder.encode(ref, java.nio.charset.StandardCharsets.UTF_8)
+                + "&per_page="
+                + effectiveLimit
+                + "&page=1";
 
         JsonNode commits = get(apiUrl);
 
@@ -233,13 +213,7 @@ public class GitHubService {
         RepositoryCoordinates repository =
                 parseRepositoryUrl(url);
 
-        String apiUrl =
-                "https://api.github.com/repos/"
-                        + repository.owner()
-                        + "/"
-                        + repository.name()
-                        + "/commits/"
-                        + commitId;
+        String apiUrl = apiBase(repository) + "/commits/" + commitId;
 
         JsonNode commit = get(apiUrl);
 
@@ -304,13 +278,7 @@ public class GitHubService {
         RepositoryCoordinates repository =
                 parseRepositoryUrl(url);
 
-        String commitApiUrl =
-                "https://api.github.com/repos/"
-                        + repository.owner()
-                        + "/"
-                        + repository.name()
-                        + "/git/commits/"
-                        + commitId;
+        String commitApiUrl = apiBase(repository) + "/git/commits/" + commitId;
 
         JsonNode commit =
                 get(commitApiUrl);
@@ -332,14 +300,7 @@ public class GitHubService {
             );
         }
 
-        String treeApiUrl =
-                "https://api.github.com/repos/"
-                        + repository.owner()
-                        + "/"
-                        + repository.name()
-                        + "/git/trees/"
-                        + treeId
-                        + "?recursive=1";
+        String treeApiUrl = apiBase(repository) + "/git/trees/" + treeId + "?recursive=1";
 
         JsonNode treeData =
                 get(treeApiUrl);
@@ -364,13 +325,7 @@ public class GitHubService {
         RepositoryCoordinates repository =
                 parseRepositoryUrl(url);
 
-        String apiUrl =
-                "https://api.github.com/repos/"
-                        + repository.owner()
-                        + "/"
-                        + repository.name()
-                        + "/git/blobs/"
-                        + blobId;
+        String apiUrl = apiBase(repository) + "/git/blobs/" + blobId;
 
         JsonNode blob =
                 get(apiUrl);
@@ -621,6 +576,10 @@ public class GitHubService {
 
         return objectMapper.readTree(response.body());
     }
+
+        private String apiBase(RepositoryCoordinates repository) {
+                return "https://api.github.com/repos/" + repository.owner() + "/" + repository.name();
+        }
 
     private RepositoryCoordinates parseRepositoryUrl(
             String url) {
