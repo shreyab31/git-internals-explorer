@@ -217,6 +217,7 @@ export function ObjectGraphView({
     });
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedObject({
       type: "COMMIT",
       id: objectGraph.commitId,

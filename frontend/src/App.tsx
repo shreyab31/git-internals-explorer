@@ -45,8 +45,7 @@ export function App() {
 
   const [diffs, setDiffs] = useState<DiffEntry[]>([]);
 
-  const [selectedTreeId, setSelectedTreeId] =
-    useState<string | null>(null);
+
 
   const [objectCommit, setObjectCommit] =
     useState<Commit | null>(null);
@@ -88,16 +87,18 @@ export function App() {
               return;
           }
 
+          /* eslint-disable react-hooks/set-state-in-effect */
           setPath(saved.path);
           setRepository(saved.repository);
           setCommits(saved.commits);
           setRefs(saved.refs);
           setSelectedBranch(
-              saved.selectedBranch
+            saved.selectedBranch
           );
           setActivePage(
-              saved.activePage ?? "repository"
+            saved.activePage ?? "repository"
           );
+          /* eslint-enable react-hooks/set-state-in-effect */
       } catch {
           localStorage.removeItem(STORAGE_KEY);
       }
@@ -134,7 +135,6 @@ export function App() {
           setSelectedBranch(defaultBranch);
 
           setSelectedCommit(null);
-          setSelectedTreeId(null);
           setObjectGraph(null);
           setObjectCommit(null);
           setDiffs([]);
@@ -157,44 +157,39 @@ export function App() {
                                   repositoryData.defaultBranch
                       );
 
-                  const branch =
+                    const branch =
                       actualDefaultBranch ?? defaultBranch;
 
-                  setSelectedBranch(branch);
+                    setSelectedBranch(branch);
 
-                  localStorage.setItem(
+                    localStorage.setItem(
                       STORAGE_KEY,
                       JSON.stringify({
-                          path,
-                          repository: repositoryData,
-                          commits: commitsData,
-                          refs: refsData,
-                          selectedBranch: branch,
-                          activePage,
+                        path,
+                        repository: repositoryData,
+                        commits: commitsData,
+                        refs: refsData,
+                        selectedBranch: branch,
+                        activePage,
                       } satisfies StoredRepositoryState)
-                  );
-              })
-              .catch((err) => {
-                  console.error(
-                      "Could not load repository references.",
-                      err
-                  );
-              })
-              .finally(() => {
-                  setRefsLoading(false);
-              });
-      } catch (err) {
+                    );
+                  })
+                  .catch(() => {})
+                  .finally(() => {
+                    setRefsLoading(false);
+                  });
+        } catch (err) {
           setError(
-              err instanceof Error
-                  ? err.message
-                  : "Something went wrong while opening the repository."
+            err instanceof Error
+              ? err.message
+              : "Something went wrong while opening the repository."
           );
-      } finally {
+        } finally {
           setLoading(false);
+        }
       }
-  }
 
-async function selectObjectCommit(commit: Commit) {
+    async function selectObjectCommit(commit: Commit) {
       setObjectCommit(commit);
       setObjectGraph(null);
       setObjectError("");

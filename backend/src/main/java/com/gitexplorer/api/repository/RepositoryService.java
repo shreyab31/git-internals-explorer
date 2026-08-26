@@ -52,13 +52,21 @@ public class RepositoryService {
     }
 
     public String getHeadCommitId(String path) throws Exception {
+                try (Repository repository = new FileRepositoryBuilder()
+                                .setGitDir(new File(path, ".git"))
+                                .readEnvironment()
+                                .build()) {
 
-        Repository repository = new FileRepositoryBuilder()
-                .setGitDir(new File(path, ".git"))
-                .readEnvironment()
-                .build();
+                        ObjectId head = repository.resolve("HEAD");
 
-        return repository.resolve("HEAD").getName();
+                        if (head == null) {
+                                throw new IllegalArgumentException(
+                                                "HEAD not found for repository: " + path
+                                );
+                        }
+
+                        return head.getName();
+                }
     }
 
     public List<CommitResponse> getCommitHistory(

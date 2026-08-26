@@ -1,12 +1,6 @@
 import { useEffect, useState } from "react";
 import { BlobViewer } from "./BlobViewer";
-
-
-type TreeEntry = {
-  name: string;
-  type: "TREE" | "BLOB" | "SYMLINK" | "GITLINK" | "UNKNOWN";
-  objectId: string;
-};
+import type { TreeEntry } from "../types/git";
 
 type RepositoryExplorerProps = {
   path: string;
@@ -28,6 +22,7 @@ export function RepositoryExplorer({
   } | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCurrentTreeId(treeId);
     setTreeHistory([]);
   }, [treeId]);
