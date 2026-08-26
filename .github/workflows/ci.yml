@@ -8,30 +8,52 @@ on:
 jobs:
   frontend:
     runs-on: ubuntu-latest
+
     defaults:
       run:
         working-directory: frontend
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-      # The initial commit has no lockfile yet; npm creates it during this run.
+
       - run: npm install
       - run: npm run build
 
   backend:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: git_explorer
+          POSTGRES_USER: git_explorer
+          POSTGRES_PASSWORD: git_explorer
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd="pg_isready -U git_explorer -d git_explorer"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
     defaults:
       run:
         working-directory: backend
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "21"
           cache: maven
+
       - run: mvn --batch-mode verify
