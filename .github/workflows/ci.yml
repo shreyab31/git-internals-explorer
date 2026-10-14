@@ -27,6 +27,12 @@ jobs:
 
   backend:
     runs-on: ubuntu-latest
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5433
+      DB_NAME: git_explorer
+      DB_USER: git_explorer
+      DB_PASSWORD: git_explorer
 
     services:
       postgres:
